@@ -12,9 +12,16 @@ class Menu:
         self.font = pygame.font.Font(None, self.settings.font_size)
         self.title_font = pygame.font.Font(None, self.settings.title_font_size)
 
+        # Initialisation des coordonnées des boutons et éléments
+        self.init_button_positions()
+        self.init_input_box()
+        self.init_validate_button()
+
+    def init_button_positions(self):
+        """Initialise les positions des boutons du menu."""
         # Bouton Jouer Vert (mode facile)
         self.play_button_easy_rect = pygame.Rect(
-            (self.settings.screen_width // 2) - 150,
+            (self.settings.screen_width // 2) - 100,
             (self.settings.screen_height // 2) - 25,
             200,
             50
@@ -22,7 +29,7 @@ class Menu:
 
         # Bouton Jouer Rouge (mode difficile)
         self.play_button_hard_rect = pygame.Rect(
-            (self.settings.screen_width // 2) + 50,
+            (self.settings.screen_width // 2) - 100,
             (self.settings.screen_height // 2) - 25,
             200,
             50
@@ -31,108 +38,144 @@ class Menu:
         # Bouton Tableau des scores
         self.leaderboard_button_rect = pygame.Rect(
             (self.settings.screen_width // 2) - 100,
-            (self.settings.screen_height // 2) + 100,
+            (self.settings.screen_height // 2) - 100,
             200,
             50
         )
 
-        # Variables pour la saisie du pseudo
+    def init_input_box(self):
+        """Initialise la boîte de saisie pour le pseudo."""
         self.pseudo = ''
         self.active = False
-        self.input_box = pygame.Rect(self.settings.screen_width // 2 - 100, self.settings.screen_height // 2 - 100, 200, 50)
+        self.input_box = pygame.Rect(
+            self.settings.screen_width // 2 - 100,
+            self.settings.screen_height // 2 - 50,
+            200,
+            50
+        )
         self.input_font = pygame.font.Font(None, 32)
         self.prompt = "Entrez votre pseudo:"
 
-        # Flag pour afficher l'écran de saisie du pseudo
+    def init_validate_button(self):
+        """Initialise le bouton de validation."""
+        self.validate_button_rect = pygame.Rect(
+            self.settings.screen_width // 2 - 50,
+            self.settings.screen_height // 2 + 20,
+            100,
+            40
+        )
         self.show_input = True
-
-        # Player ID
         self.player_id = None
 
     def draw(self, screen):
+        """Gère l'affichage en fonction de l'état du menu."""
+        screen.fill(self.settings.bg_color)
+
         if self.show_input:
-            screen.fill(self.settings.bg_color)
-            # Afficher le prompt
-            prompt_surface = self.font.render(self.prompt, True, self.settings.score_color)
-            prompt_rect = prompt_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2 - 100))
-            screen.blit(prompt_surface, prompt_rect)
-
-            # Dessiner la boîte de saisie
-            pygame.draw.rect(screen, (255, 255, 255), self.input_box, 2)
-            txt_surface = self.input_font.render(self.pseudo, True, self.settings.score_color)
-            screen.blit(txt_surface, (self.input_box.x + 5, self.input_box.y + 10))
-            pygame.display.flip()
+            self.draw_input_screen(screen)
         else:
-            screen.fill(self.settings.bg_color)
-            # Dessine le titre
-            title_surface = self.title_font.render("Snake Game", True, self.settings.title_color)
-            title_rect = title_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 4))
-            screen.blit(title_surface, title_rect)
+            self.draw_main_menu(screen)
 
-            # Dessine le bouton "Jouer" Vert (mode facile)
-            pygame.draw.rect(screen, self.settings.button_color_easy, self.play_button_easy_rect)
-            play_text_easy = self.font.render("Jouer (Facile)", True, self.settings.button_text_color)
-            play_text_easy_rect = play_text_easy.get_rect(center=self.play_button_easy_rect.center)
-            screen.blit(play_text_easy, play_text_easy_rect)
+        pygame.display.flip()
 
-            # Dessine le bouton "Jouer" Rouge (mode difficile)
-            pygame.draw.rect(screen, self.settings.button_color_hard, self.play_button_hard_rect)
-            play_text_hard = self.font.render("Jouer (Difficile)", True, self.settings.button_text_color)
-            play_text_hard_rect = play_text_hard.get_rect(center=self.play_button_hard_rect.center)
-            screen.blit(play_text_hard, play_text_hard_rect)
+    def draw_input_screen(self, screen):
+        """Affiche l'écran de saisie du pseudo."""
+        self.draw_text_centered(screen, self.prompt, self.font, self.settings.score_color, y_offset=-100)
+        pygame.draw.rect(screen, (255, 255, 255), self.input_box, 2)
+        txt_surface = self.input_font.render(self.pseudo, True, self.settings.score_color)
+        screen.blit(txt_surface, (self.input_box.x + 10, self.input_box.y + 10))
+        self.draw_button(screen, self.validate_button_rect, "Valider", self.input_font, (0, 255, 0), (0, 0, 0))
 
-            # Dessine le bouton "Tableau des scores"
-            pygame.draw.rect(screen, (0, 0, 255), self.leaderboard_button_rect)  # Bleu pour différencier
-            leaderboard_text = self.font.render("Scores", True, self.settings.button_text_color)
-            leaderboard_rect = leaderboard_text.get_rect(center=self.leaderboard_button_rect.center)
-            screen.blit(leaderboard_text, leaderboard_rect)
+    def draw_main_menu(self, screen):
+        """Affiche l'écran principal du menu."""
+        self.draw_text_centered(screen, "Snake Game", self.title_font, self.settings.title_color, y_offset=-self.settings.screen_height // 4)
+        
+        # Espacement entre les boutons
+        button_spacing = 70
+        initial_y = self.settings.screen_height // 2 - button_spacing
+        
+        # Mise à jour des positions des boutons
+        self.play_button_easy_rect.y = initial_y
+        self.play_button_hard_rect.y = initial_y + button_spacing
+        self.leaderboard_button_rect.y = initial_y + 2 * button_spacing
 
-            # Affiche le meilleur score pour le mode facile
-            top_score_easy = self.get_top_score('facile')
-            best_score_easy_text = self.font.render(f"Meilleur score (facile): {top_score_easy}", True, self.settings.score_color)
-            best_score_easy_rect = best_score_easy_text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2 + 50))
-            screen.blit(best_score_easy_text, best_score_easy_rect)
+        # Dessiner les boutons
+        self.draw_button(screen, self.play_button_easy_rect, "Jouer (Facile)", self.font, self.settings.button_color_easy, self.settings.button_text_color)
+        self.draw_button(screen, self.play_button_hard_rect, "Jouer (Difficile)", self.font, self.settings.button_color_hard, self.settings.button_text_color)
+        self.draw_button(screen, self.leaderboard_button_rect, "Classement", self.font, (0, 0, 255), self.settings.button_text_color)
+        
+        # Afficher les meilleurs scores
+        top_score_y = self.settings.screen_height // 2 - 2 * button_spacing + 100  # Position au-dessus des boutons
+        self.draw_best_scores_line(screen, top_score_y)
 
-            # Affiche le meilleur score pour le mode difficile
-            top_score_hard = self.get_top_score('difficile')
-            best_score_hard_text = self.font.render(f"Meilleur score (difficile): {top_score_hard}", True, self.settings.score_color)
-            best_score_hard_rect = best_score_hard_text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2 + 100))
-            screen.blit(best_score_hard_text, best_score_hard_rect)
+    def draw_button(self, screen, rect, text, font, bg_color, text_color):
+        """Dessine un bouton avec du texte centré."""
+        pygame.draw.rect(screen, bg_color, rect, border_radius=10)
+        text_surface = font.render(text, True, text_color)
+        text_rect = text_surface.get_rect(center=rect.center)
+        screen.blit(text_surface, text_rect)
 
-            pygame.display.flip()
+    def draw_text_centered(self, screen, text, font, color, x_offset=0, y_offset=0):
+        """Affiche du texte centré horizontalement avec des décalages optionnels."""
+        text_surface = font.render(text, True, color)
+        text_rect = text_surface.get_rect(center=(self.settings.screen_width // 2 + x_offset, self.settings.screen_height // 2 + y_offset))
+        screen.blit(text_surface, text_rect)
+
+    def draw_best_scores_line(self, screen, y_offset):
+        """Affiche les meilleurs scores pour les modes 'facile' et 'difficile' sur la même ligne."""
+        easy_top_score = self.get_top_score('facile', self.pseudo)
+        hard_top_score = self.get_top_score('difficile', self.pseudo)
+        score_text = f"Facile: {easy_top_score} | Difficile: {hard_top_score}"
+
+        # Calculer la position horizontale des scores
+        screen_center_x = self.settings.screen_width // 2
+        score_x = screen_center_x  # Centrer le texte des scores
+
+        # Dessiner les meilleurs scores
+        self.draw_text_centered(screen, score_text, self.font, self.settings.score_color, y_offset=y_offset)
 
     def handle_event(self, event):
+        """Gère les événements utilisateurs."""
         if self.show_input:
             if event.type == pygame.MOUSEBUTTONDOWN:
-                # Si la boîte de saisie est cliquée, activer l'entrée
                 if self.input_box.collidepoint(event.pos):
                     self.active = True
                 else:
                     self.active = False
+
+                if self.validate_button_rect.collidepoint(event.pos):
+                    if self.pseudo.strip() != '':
+                        self.player_id = self.create_or_get_player(self.pseudo.strip())
+                        if self.player_id:
+                            self.show_input = False
+
             if event.type == pygame.KEYDOWN:
                 if self.active:
-                    if event.key == pygame.K_RETURN:
+                    if event.key == pygame.K_BACKSPACE:
+                        self.pseudo = self.pseudo[:-1]
+                    elif event.key == pygame.K_RETURN:
                         if self.pseudo.strip() != '':
                             self.player_id = self.create_or_get_player(self.pseudo.strip())
                             if self.player_id:
                                 self.show_input = False
-                    elif event.key == pygame.K_BACKSPACE:
-                        self.pseudo = self.pseudo[:-1]
                     else:
-                        if len(self.pseudo) < 20:  # Limite de caractères
+                        if len(self.pseudo) < 20:
                             self.pseudo += event.unicode
         else:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if self.play_button_easy_rect.collidepoint(event.pos):
-                    return 'play_easy'  # Démarrer le jeu en mode facile
+                    return 'play_easy'
                 elif self.play_button_hard_rect.collidepoint(event.pos):
-                    return 'play_hard'  # Démarrer le jeu en mode difficile
+                    return 'play_hard'
                 elif self.leaderboard_button_rect.collidepoint(event.pos):
                     self.show_leaderboard()
         return None
 
     def create_or_get_player(self, pseudo):
+        """Crée un joueur ou récupère un joueur existant."""
         print(f"[Menu] Création ou récupération du joueur: {pseudo}")
+        conn = None
+        cursor = None
         try:
             conn = mysql.connector.connect(
                 host=self.settings.db_host,
@@ -141,7 +184,6 @@ class Menu:
                 password=self.settings.db_password
             )
             cursor = conn.cursor()
-            # Vérifier si le joueur existe
             query = "SELECT player_id FROM players WHERE pseudo = %s"
             cursor.execute(query, (pseudo,))
             result = cursor.fetchone()
@@ -149,14 +191,12 @@ class Menu:
                 print(f"[Menu] Joueur existant trouvé avec player_id: {result[0]}")
                 return result[0]
             else:
-                # Créer un nouveau joueur
                 insert_query = "INSERT INTO players (pseudo) VALUES (%s)"
                 cursor.execute(insert_query, (pseudo,))
                 conn.commit()
                 new_player_id = cursor.lastrowid
                 print(f"[Menu] Nouveau joueur créé avec player_id: {new_player_id}")
 
-                # Initialiser les scores à 0 pour chaque mode de jeu
                 modes = ['facile', 'difficile']
                 for mode in modes:
                     score_hmac = self.encrypt_score(0)
@@ -172,18 +212,20 @@ class Menu:
             print(f"[Menu] Erreur lors de la création/récupération du joueur: {err}")
             return None
         finally:
-            if cursor:
+            if cursor is not None:
                 cursor.close()
-            if conn:
+            if conn is not None and conn.is_connected():
                 conn.close()
 
     def encrypt_score(self, score):
+        """Chiffre le score avec HMAC."""
         key = self.settings.score_encryption_key.encode()
         message = str(score).encode()
         hmac_digest = hmac.new(key, message, hashlib.sha256).hexdigest()
         return hmac_digest
 
-    def get_top_score(self, mode):
+    def get_top_score(self, mode, pseudo):
+        """Récupère le meilleur score pour un mode donné."""
         print(f"[Menu] Récupération du meilleur score pour le mode: {mode}")
         try:
             conn = mysql.connector.connect(
@@ -199,10 +241,12 @@ class Menu:
                 JOIN players p ON s.player_id = p.player_id
                 JOIN game_modes gm ON s.mode_id = gm.mode_id
                 WHERE gm.mode_name = %s
+                AND s.score > 0
+                AND p.pseudo = %s
                 ORDER BY s.score DESC, s.score_date ASC
                 LIMIT 1
             """
-            cursor.execute(query, (mode,))
+            cursor.execute(query, (mode,pseudo))
             result = cursor.fetchone()
             if result:
                 print(f"[Menu] Meilleur score trouvé: {result[0]} avec {result[1]}")
@@ -220,12 +264,13 @@ class Menu:
                 conn.close()
 
     def show_leaderboard(self):
+        """Affiche le tableau des scores."""
         print("[Menu] Affichage du tableau des scores.")
-        # Afficher le tableau des scores
         leaderboard = self.get_leaderboard()
         self.display_leaderboard(leaderboard)
 
     def get_leaderboard(self):
+        """Récupère le leaderboard pour les deux modes de jeu."""
         print("[Menu] Récupération du leaderboard.")
         leaderboard = {'facile': [], 'difficile': []}
         try:
@@ -262,7 +307,7 @@ class Menu:
         return leaderboard
 
     def display_leaderboard(self, leaderboard):
-        # Afficher le leaderboard dans une nouvelle boucle Pygame
+        """Affiche le leaderboard dans une nouvelle boucle Pygame."""
         print("[Menu] Affichage du leaderboard.")
         running = True
         while running:
