@@ -36,11 +36,13 @@ def main():
             menu.draw(screen)
             pygame.display.flip()
             clock.tick(settings.fps)
+        
         elif current_screen == 'game':
             result = game.run()
             if result == 'quit':
                 running = False
             else:
+                menu.update_best_scores()  # Actualise les meilleurs scores affichés dans le menu
                 current_screen = 'menu'
         else:
             running = False
