@@ -232,11 +232,13 @@ class Menu:
         return hmac_digest
 
     def update_best_scores(self):
-        self.best_scores = self.load_best_scores()  # Recharge les scores
+        self.load_best_scores()
         
     def load_best_scores(self):
         """Charge les meilleurs scores pour les deux modes pour le joueur actuel."""
         print("[Menu] Chargement des meilleurs scores.")
+        if self.best_scores is None:
+            self.best_scores = {'facile': 0, 'difficile': 0}  # Réinitialisation si nécessaire
         self.best_scores['facile'] = self.get_top_score('facile')
         self.best_scores['difficile'] = self.get_top_score('difficile')
 
