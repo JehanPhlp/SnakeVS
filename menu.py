@@ -17,6 +17,12 @@ class Menu:
         self.init_input_box()
         self.init_validate_button()
 
+        # Variables pour stocker les meilleurs scores
+        self.best_scores = {'facile': 'Aucun score', 'difficile': 'Aucun score'}
+        self.player_id = None  # Pour stocker l'ID du joueur
+        self.pseudo = ''
+        self.load_best_scores()  # Charge les meilleurs scores au démarrage si un joueur est connecté
+
     def init_button_positions(self):
         """Initialise les positions des boutons du menu."""
         # Bouton Jouer Vert (mode facile)
@@ -45,7 +51,6 @@ class Menu:
 
     def init_input_box(self):
         """Initialise la boîte de saisie pour le pseudo."""
-        self.pseudo = ''
         self.active = False
         self.input_box = pygame.Rect(
             self.settings.screen_width // 2 - 100,
@@ -65,7 +70,6 @@ class Menu:
             40
         )
         self.show_input = True
-        self.player_id = None
 
     def draw(self, screen):
         """Gère l'affichage en fonction de l'état du menu."""
@@ -75,7 +79,7 @@ class Menu:
             self.draw_input_screen(screen)
         else:
             self.draw_main_menu(screen)
-
+        
         pygame.display.flip()
 
     def draw_input_screen(self, screen):
@@ -123,9 +127,7 @@ class Menu:
 
     def draw_best_scores_line(self, screen, y_offset):
         """Affiche les meilleurs scores pour les modes 'facile' et 'difficile' sur la même ligne."""
-        easy_top_score = self.get_top_score('facile', self.pseudo)
-        hard_top_score = self.get_top_score('difficile', self.pseudo)
-        score_text = f"Facile: {easy_top_score} | Difficile: {hard_top_score}"
+        score_text = f"Facile: {self.best_scores['facile']} | Difficile: {self.best_scores['difficile']}"
 
         # Calculer la position horizontale des scores
         screen_center_x = self.settings.screen_width // 2
@@ -133,6 +135,7 @@ class Menu:
 
         # Dessiner les meilleurs scores
         self.draw_text_centered(screen, score_text, self.font, self.settings.score_color, y_offset=y_offset)
+
 
     def handle_event(self, event):
         """Gère les événements utilisateurs."""
@@ -148,6 +151,7 @@ class Menu:
                         self.player_id = self.create_or_get_player(self.pseudo.strip())
                         if self.player_id:
                             self.show_input = False
+                            self.load_best_scores()  # Recharger les meilleurs scores pour le joueur
 
             if event.type == pygame.KEYDOWN:
                 if self.active:
@@ -158,6 +162,7 @@ class Menu:
                             self.player_id = self.create_or_get_player(self.pseudo.strip())
                             if self.player_id:
                                 self.show_input = False
+                                self.load_best_scores()  # Recharger les meilleurs scores pour le joueur
                     else:
                         if len(self.pseudo) < 20:
                             self.pseudo += event.unicode
@@ -199,12 +204,14 @@ class Menu:
 
                 modes = ['facile', 'difficile']
                 for mode in modes:
-                    score_hmac = self.encrypt_score(0)
+                    score_hmac = self.encrypt_score(0)  # Initialisation avec un score de 0
                     insert_score_query = """
                         INSERT INTO scores (player_id, mode_id, score, score_hmac)
-                        VALUES (%s, (SELECT mode_id FROM game_modes WHERE mode_name = %s), %s, %s)
+                        SELECT %s, gm.mode_id, %s, %s
+                        FROM game_modes gm
+                        WHERE gm.mode_name = %s
                     """
-                    cursor.execute(insert_score_query, (new_player_id, mode, 0, score_hmac))
+                    cursor.execute(insert_score_query, (new_player_id, 0, score_hmac, mode))
                     print(f"[Menu] Score initialisé à 0 pour le mode: {mode}")
                 conn.commit()
                 return new_player_id
@@ -224,8 +231,17 @@ class Menu:
         hmac_digest = hmac.new(key, message, hashlib.sha256).hexdigest()
         return hmac_digest
 
-    def get_top_score(self, mode, pseudo):
-        """Récupère le meilleur score pour un mode donné."""
+    def update_best_scores(self):
+        self.best_scores = self.load_best_scores()  # Recharge les scores
+        
+    def load_best_scores(self):
+        """Charge les meilleurs scores pour les deux modes pour le joueur actuel."""
+        print("[Menu] Chargement des meilleurs scores.")
+        self.best_scores['facile'] = self.get_top_score('facile')
+        self.best_scores['difficile'] = self.get_top_score('difficile')
+
+    def get_top_score(self, mode):
+        """Récupère le meilleur score pour le joueur et le mode donné."""
         print(f"[Menu] Récupération du meilleur score pour le mode: {mode}")
         try:
             conn = mysql.connector.connect(
@@ -236,21 +252,20 @@ class Menu:
             )
             cursor = conn.cursor()
             query = """
-                SELECT p.pseudo, s.score
+                SELECT s.score
                 FROM scores s
-                JOIN players p ON s.player_id = p.player_id
                 JOIN game_modes gm ON s.mode_id = gm.mode_id
-                WHERE gm.mode_name = %s
+                WHERE s.player_id = %s
+                AND gm.mode_name = %s
                 AND s.score > 0
-                AND p.pseudo = %s
                 ORDER BY s.score DESC, s.score_date ASC
                 LIMIT 1
             """
-            cursor.execute(query, (mode,pseudo))
+            cursor.execute(query, (self.player_id, mode))
             result = cursor.fetchone()
             if result:
-                print(f"[Menu] Meilleur score trouvé: {result[0]} avec {result[1]}")
-                return f"{result[0]}: {result[1]}"
+                print(f"[Menu] Meilleur score trouvé: {result[0]}")
+                return f"{result[0]}"
             else:
                 print("[Menu] Aucun score trouvé pour ce mode.")
                 return "Aucun score"
