@@ -243,6 +243,7 @@ class Menu:
                     WHERE s.player_id = p.player_id
                     AND s.mode_id = gm.mode_id
                     AND gm.mode_name = %s
+                    AND s.score > 0
                     GROUP BY p.pseudo, p.player_id
                     ORDER BY max(s.score) DESC
                     LIMIT 5;
