@@ -111,14 +111,15 @@ class Database:
         except mysql.connector.Error as err:
             print(err)
 
-    def get_leaderboard(self, mode_name, limit=10):
+    def get_leaderboard(self, mode_name, limit=5):
         try:
             query = """
-                SELECT p.pseudo, s.score, s.score_date
+                SELECT p.pseudo, max(s.score)
                 FROM scores s
                 JOIN players p ON s.player_id = p.player_id
                 JOIN game_modes gm ON s.mode_id = gm.mode_id
                 WHERE gm.mode_name = %s
+                GROUP BY p.pseudo, p.player_id
                 ORDER BY s.score DESC, s.score_date ASC
                 LIMIT %s
             """

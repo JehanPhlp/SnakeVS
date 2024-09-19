@@ -238,13 +238,14 @@ class Menu:
             cursor = conn.cursor()
             for mode in ['facile', 'difficile']:
                 query = """
-                    SELECT p.pseudo, s.score, s.score_date
-                    FROM scores s
-                    JOIN players p ON s.player_id = p.player_id
-                    JOIN game_modes gm ON s.mode_id = gm.mode_id
-                    WHERE gm.mode_name = %s
-                    ORDER BY s.score DESC, s.score_date ASC
-                    LIMIT 10
+                    SELECT p.pseudo, max(s.score)
+                    FROM scores s, players p, game_modes gm
+                    WHERE s.player_id = p.player_id
+                    AND s.mode_id = gm.mode_id
+                    AND gm.mode_name = %s
+                    GROUP BY p.pseudo, p.player_id
+                    ORDER BY max(s.score) DESC
+                    LIMIT 5;
                 """
                 cursor.execute(query, (mode,))
                 results = cursor.fetchall()
@@ -287,7 +288,7 @@ class Menu:
                 screen.blit(mode_title, mode_rect)
                 y_offset += 40
 
-                for idx, (pseudo, score, score_date) in enumerate(leaderboard[mode], start=1):
+                for idx, (pseudo, score) in enumerate(leaderboard[mode], start=1):
                     score_text = self.font.render(f"{idx}. {pseudo} - {score}", True, self.settings.score_color)
                     score_rect = score_text.get_rect(center=(self.settings.screen_width // 2, y_offset))
                     screen.blit(score_text, score_rect)
