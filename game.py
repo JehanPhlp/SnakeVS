@@ -103,16 +103,13 @@ class Game:
             else:
                 self.food.randomize_position([self.snake.body])
             self.score.increment()
-            print(f"[Game] Score incrémenté. Nouveau score: {self.score.value}")
 
         # Collision du serpent du joueur avec les murs
         if self.snake.check_bounds():
-            print("[Game] Collision avec les murs détectée.")
             self.game_over()
 
         # Collision du serpent du joueur avec lui-même
         if self.snake.check_collision():
-            print("[Game] Collision avec lui-même détectée.")
             self.game_over()
 
         if self.enemy_snake:
@@ -120,27 +117,22 @@ class Game:
             if self.enemy_snake.body[0] == self.food.position:
                 self.enemy_snake.grow()
                 self.food.randomize_position([self.snake.body, self.enemy_snake.body])
-                print("[Game] Ennemi a mangé la nourriture.")
 
             # Collision du serpent ennemi avec les murs
             if self.enemy_snake.check_bounds():
-                print("[Game] Collision des ennemis avec les murs détectée.")
                 self.enemy_snake = EnemySnake()
 
             # Collision du serpent ennemi avec lui-même
             if self.enemy_snake.check_collision():
-                print("[Game] Collision de l'ennemi avec lui-même détectée.")
                 self.enemy_snake = EnemySnake()
 
             # Collision de la tête du serpent du joueur avec le corps du serpent ennemi (hors tête)
             if self.snake.body[0] in self.enemy_snake.body[1:]:
-                print("[Game] Collision de la tête du joueur avec le corps de l'ennemi détectée.")
                 self.game_over()
 
             # Collision de la tête du serpent ennemi avec le corps du serpent du joueur (hors tête)
             if self.enemy_snake.body[0] in self.snake.body[1:]:
-                print("[Game] Collision de la tête de l'ennemi avec le corps du joueur détectée.")
-                self.game_over()
+                self.enemy_snake = EnemySnake()
 
     def game_over(self):
         self.game_over_displayed = True
