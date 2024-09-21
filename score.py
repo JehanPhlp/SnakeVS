@@ -32,10 +32,12 @@ class Score:
         if self.mode not in ['facile', 'difficile']:
             print("[Score] Mode de jeu invalide pour le score.")
             return
+
         if self.value > self.best_score:
             self.best_score = self.value
             score_hmac = self.encrypt_score(self.best_score)
             print(f"[Score] Enregistrement du meilleur score: {self.best_score}, HMAC: {score_hmac}")
+            
             try:
                 conn = mysql.connector.connect(
                     host=self.settings.db_host,
@@ -44,20 +46,42 @@ class Score:
                     password=self.settings.db_password
                 )
                 cursor = conn.cursor()
-                query = """
+
+                # Vérifier si des meilleurs scores existent pour ce joueur et ce mode
+                check_query = """
+                    SELECT score_id FROM scores
+                    WHERE player_id = %s AND mode_id = (SELECT mode_id FROM game_modes WHERE mode_name = %s)
+                """
+                cursor.execute(check_query, (self.player_id, self.mode))
+                existing_scores = cursor.fetchall()
+
+                # Supprimer les anciens scores si trouvés
+                if existing_scores:
+                    delete_query = """
+                        DELETE FROM scores WHERE score_id IN (%s)
+                    """ % ','.join([str(score[0]) for score in existing_scores])
+                    cursor.execute(delete_query)
+                    print(f"[Score] {len(existing_scores)} ancien(s) meilleur(s) score(s) supprimé(s) pour le joueur {self.player_id} en mode {self.mode}.")
+
+                # Insérer le nouveau meilleur score
+                insert_query = """
                     INSERT INTO scores (player_id, mode_id, score, score_hmac)
                     VALUES (%s, (SELECT mode_id FROM game_modes WHERE mode_name = %s), %s, %s)
                 """
-                cursor.execute(query, (self.player_id, self.mode, self.best_score, score_hmac))
+                cursor.execute(insert_query, (self.player_id, self.mode, self.best_score, score_hmac))
                 conn.commit()
-                print("[Score] Score inséré avec succès dans la base de données.")
+                print("[Score] Nouveau meilleur score inséré avec succès dans la base de données.")
+
             except mysql.connector.Error as err:
                 print(f"[Score] Erreur lors de l'insertion du score: {err}")
             finally:
+                # Assurez-vous de toujours fermer le curseur et la connexion
                 if cursor:
                     cursor.close()
                 if conn:
                     conn.close()
+
+
 
     def load_best_score(self):
         print(f"[Score] Chargement du meilleur score pour le joueur_id: {self.player_id}, mode: {self.mode}")
