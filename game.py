@@ -126,8 +126,8 @@ class Game:
             if self.enemy_snake.check_collision():
                 self.enemy_snake = EnemySnake()
 
-            # Collision de la tête du serpent du joueur avec le corps du serpent ennemi (hors tête)
-            if self.snake.body[0] in self.enemy_snake.body[1:]:
+            # Collision de la tête du serpent du joueur avec le corps du serpent ennemi (avec tête)
+            if self.snake.body[0] in self.enemy_snake.body[0:]:
                 self.game_over()
 
             # Collision de la tête du serpent ennemi avec le corps du serpent du joueur (hors tête)
