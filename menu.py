@@ -324,9 +324,31 @@ class Menu:
         return leaderboard
 
     def display_leaderboard(self, leaderboard):
-        """Affiche le leaderboard dans une nouvelle boucle Pygame."""
+        """Affiche le leaderboard avec une barre de défilement visible et des fonctionnalités de défilement supplémentaires."""
         print("[Menu] Affichage du leaderboard.")
         running = True
+
+        # Variables pour gérer le défilement
+        scroll_y = 0  # Position de défilement
+        scroll_speed = 20  # Vitesse de défilement (flèches et molette)
+        is_scrolling = False  # Pour vérifier si la souris est maintenue enfoncée pour scroller
+        last_mouse_y = 0  # Dernière position de la souris pour calculer le mouvement
+
+        # Créer une surface virtuelle pour les scores
+        leaderboard_surface_height = 600  # Hauteur virtuelle pour les scores
+        leaderboard_surface = pygame.Surface((self.settings.screen_width, leaderboard_surface_height))
+
+        # Calculer la hauteur totale du leaderboard (dépend de la taille du contenu)
+        total_height = 100 + len(leaderboard['facile']) * 30 + len(leaderboard['difficile']) * 30 + 200
+        max_scroll = max(0, total_height - self.settings.screen_height + 100)  # Marge en bas
+
+        # Calculer la hauteur de la barre de défilement en fonction du contenu total
+        visible_ratio = self.settings.screen_height / total_height
+        scrollbar_height = max(20, self.settings.screen_height * visible_ratio)  # Hauteur minimale de la barre
+        scrollbar_width = 15  # Largeur de la barre
+        scrollbar_color = (100, 100, 100)  # Couleur de la barre de scroll
+        scrollbar_x = self.settings.screen_width - scrollbar_width - 10  # Position X de la scrollbar
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -335,33 +357,65 @@ class Menu:
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         running = False
+                    elif event.key == pygame.K_DOWN:  # Flèche bas pour défiler vers le bas
+                        scroll_y = min(scroll_y + scroll_speed, max_scroll)
+                    elif event.key == pygame.K_UP:  # Flèche haut pour défiler vers le haut
+                        scroll_y = max(scroll_y - scroll_speed, 0)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 4:  # Molette vers le haut
+                        scroll_y = max(scroll_y - scroll_speed, 0)
+                    elif event.button == 5:  # Molette vers le bas
+                        scroll_y = min(scroll_y + scroll_speed, max_scroll)
+                    elif event.button == 1:  # Clic gauche pour activer le défilement
+                        is_scrolling = True
+                        last_mouse_y = event.pos[1]  # Enregistrer la position initiale de la souris
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    if event.button == 1:  # Relâcher le clic gauche
+                        is_scrolling = False
+                elif event.type == pygame.MOUSEMOTION:
+                    if is_scrolling:  # Si le bouton est maintenu, on calcule le défilement
+                        mouse_y = event.pos[1]
+                        delta_y = mouse_y - last_mouse_y  # Calcul de la différence de mouvement
+                        scroll_y = min(max(scroll_y - delta_y, 0), max_scroll)  # Mise à jour du défilement
+                        last_mouse_y = mouse_y  # Mise à jour de la dernière position de la souris
 
             screen = pygame.display.get_surface()
             screen.fill(self.settings.bg_color)
 
+            # Remplir la surface virtuelle avec le leaderboard
+            leaderboard_surface.fill(self.settings.bg_color)
+
             # Afficher le titre
             title_surface = self.title_font.render("Tableau des Scores", True, self.settings.title_color)
             title_rect = title_surface.get_rect(center=(self.settings.screen_width // 2, 50))
-            screen.blit(title_surface, title_rect)
+            leaderboard_surface.blit(title_surface, title_rect)
 
             y_offset = 100
             for mode in ['facile', 'difficile']:
                 mode_title = self.font.render(f"Mode: {mode.capitalize()}", True, self.settings.score_color)
                 mode_rect = mode_title.get_rect(center=(self.settings.screen_width // 2, y_offset))
-                screen.blit(mode_title, mode_rect)
+                leaderboard_surface.blit(mode_title, mode_rect)
                 y_offset += 40
 
                 for idx, (pseudo, score) in enumerate(leaderboard[mode], start=1):
                     score_text = self.font.render(f"{idx}. {pseudo} - {score}", True, self.settings.score_color)
                     score_rect = score_text.get_rect(center=(self.settings.screen_width // 2, y_offset))
-                    screen.blit(score_text, score_rect)
+                    leaderboard_surface.blit(score_text, score_rect)
                     y_offset += 30
 
                 y_offset += 20  # Espacement entre les modes
 
             info_surface = self.font.render("Appuyez sur Échap pour retourner au menu", True, self.settings.score_color)
-            info_rect = info_surface.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height - 50))
-            screen.blit(info_surface, info_rect)
+            info_rect = info_surface.get_rect(center=(self.settings.screen_width // 2, leaderboard_surface_height - 50))
+            leaderboard_surface.blit(info_surface, info_rect)
+
+            # Dessiner la surface virtuelle à la position scrollée
+            screen.blit(leaderboard_surface, (0, 0), (0, scroll_y, self.settings.screen_width, self.settings.screen_height))
+
+            # Calculer la position de la barre de défilement en fonction de la position de scroll
+            if total_height > self.settings.screen_height:
+                scrollbar_y = (scroll_y / max_scroll) * (self.settings.screen_height - scrollbar_height)
+                pygame.draw.rect(screen, scrollbar_color, (scrollbar_x, scrollbar_y, scrollbar_width, scrollbar_height))
 
             pygame.display.flip()
             pygame.time.Clock().tick(self.settings.fps)
