@@ -1,7 +1,9 @@
 import pygame
+import asyncio
 from game import Game
 from menu import Menu
 from settings import Settings
+from multiplayer_game import MultiplayerGame  # Nouveau fichier pour le multijoueur
 
 def main():
     pygame.init()
@@ -21,33 +23,34 @@ def main():
                     running = False
                 else:
                     action = menu.handle_event(event)
-                    if action == 'play_easy':
-                        if menu.player_id:
-                            game = Game('facile', menu.player_id)
-                            current_screen = 'game'
-                        else:
-                            print("[Main] player_id non défini.")
-                    elif action == 'play_hard':
-                        if menu.player_id:
-                            game = Game('difficile', menu.player_id)
-                            current_screen = 'game'
-                        else:
-                            print("[Main] player_id non défini.")
+                    if action == 'play_local':
+                        game = Game(mode='local')  # Mode local
+                        current_screen = 'game'
+                    elif action == 'play_multiplayer':
+                        current_screen = 'multiplayer'
+
             menu.draw(screen)
             pygame.display.flip()
             clock.tick(settings.fps)
-        
+
         elif current_screen == 'game':
             result = game.run()
             if result == 'quit':
                 running = False
             else:
-                menu.update_best_scores()  # Actualise les meilleurs scores affichés dans le menu
                 current_screen = 'menu'
-        else:
-            running = False
+
+        elif current_screen == 'multiplayer':
+            # Passer en mode multijoueur avec asyncio
+            asyncio.run(start_multiplayer_game())
+            current_screen = 'menu'
 
     pygame.quit()
+
+# Fonction pour démarrer la partie multijoueur
+async def start_multiplayer_game():
+    multiplayer_game = MultiplayerGame(mode='difficile', player_id=1)  # Exemple avec mode difficile et un ID de joueur
+    await multiplayer_game.connect_to_server('ws://localhost:8080')
 
 if __name__ == "__main__":
     main()
