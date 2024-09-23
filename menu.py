@@ -41,10 +41,18 @@ class Menu:
             50
         )
 
+        # Bouton Multijoueur
+        self.play_button_multiplayer_rect = pygame.Rect(
+            (self.settings.screen_width // 2) - 100,
+            (self.settings.screen_height // 2) + 50,
+            200,
+            50
+        )
+
         # Bouton Tableau des scores
         self.leaderboard_button_rect = pygame.Rect(
             (self.settings.screen_width // 2) - 100,
-            (self.settings.screen_height // 2) - 100,
+            (self.settings.screen_height // 2) + 125,
             200,
             50
         )
@@ -92,24 +100,36 @@ class Menu:
 
     def draw_main_menu(self, screen):
         """Affiche l'écran principal du menu."""
-        self.draw_text_centered(screen, "Snake Game", self.title_font, self.settings.title_color, y_offset=-self.settings.screen_height // 4)
+        self.draw_text_centered(screen, "Snake Game", self.title_font, self.settings.title_color, y_offset=-self.settings.screen_height // 2 + 60)
         
         # Espacement entre les boutons
         button_spacing = 70
         initial_y = self.settings.screen_height // 2 - button_spacing
         
         # Mise à jour des positions des boutons
+
+        #4 boutons 2 lignes 2 colonnes centré au milieu de l'écran
+        self.play_button_easy_rect.x = self.settings.screen_width // 2 - 220
         self.play_button_easy_rect.y = initial_y
-        self.play_button_hard_rect.y = initial_y + button_spacing
-        self.leaderboard_button_rect.y = initial_y + 2 * button_spacing
+
+        self.play_button_hard_rect.x = self.settings.screen_width // 2 + 30
+        self.play_button_hard_rect.y = initial_y
+
+        self.play_button_multiplayer_rect.x = self.settings.screen_width // 2 - 220
+        self.play_button_multiplayer_rect.y = initial_y + button_spacing
+
+        self.leaderboard_button_rect.x = self.settings.screen_width // 2 + 30
+        self.leaderboard_button_rect.y = initial_y + button_spacing
+
 
         # Dessiner les boutons
         self.draw_button(screen, self.play_button_easy_rect, "Jouer (Facile)", self.font, self.settings.button_color_easy, self.settings.button_text_color)
         self.draw_button(screen, self.play_button_hard_rect, "Jouer (Difficile)", self.font, self.settings.button_color_hard, self.settings.button_text_color)
+        self.draw_button(screen, self.play_button_multiplayer_rect, "Multijoueur", self.font, (255, 155, 0), self.settings.button_text_color)
         self.draw_button(screen, self.leaderboard_button_rect, "Classement", self.font, (0, 0, 255), self.settings.button_text_color)
         
         # Afficher les meilleurs scores
-        top_score_y = self.settings.screen_height // 2 - 2 * button_spacing + 100  # Position au-dessus des boutons
+        top_score_y = self.settings.screen_height // 2 - 2 * button_spacing + 50  # Position au-dessus des boutons
         self.draw_best_scores_line(screen, top_score_y)
 
     def draw_button(self, screen, rect, text, font, bg_color, text_color):
@@ -174,6 +194,8 @@ class Menu:
                     return 'play_hard'
                 elif self.leaderboard_button_rect.collidepoint(event.pos):
                     self.show_leaderboard()
+                elif self.play_button_multiplayer_rect.collidepoint(event.pos):
+                    print("Multijoueur non implémenté.")
         return None
 
     def create_or_get_player(self, pseudo):
