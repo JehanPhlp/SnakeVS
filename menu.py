@@ -5,8 +5,21 @@ from settings import Settings
 from score import Score
 import mysql.connector
 from pygame.locals import *
+import random
+import json
 
 class Menu:
+    def randomTitle():
+        # Open and read the JSON file
+        with open("title.json", "r") as file:
+            data = json.load(file)  # Load the JSON data into a Python dictionary
+
+        # Select a random title from the list of games
+        selected_title = random.choice(data["games"])
+        print(selected_title)  # Print the selected title
+        return selected_title  # Return the selected title
+
+    title = randomTitle()
     def __init__(self):
         self.settings = Settings()
         self.font = pygame.font.Font(None, self.settings.font_size)
@@ -100,7 +113,7 @@ class Menu:
 
     def draw_main_menu(self, screen):
         """Affiche l'écran principal du menu."""
-        self.draw_text_centered(screen, "Snake Game", self.title_font, self.settings.title_color, y_offset=-self.settings.screen_height // 2 + 60)
+        self.draw_text_centered(screen, self.title, self.title_font, self.settings.title_color, y_offset=-self.settings.screen_height // 2 + 60)
         
         # Espacement entre les boutons
         button_spacing = 70
