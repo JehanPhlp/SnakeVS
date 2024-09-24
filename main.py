@@ -1,6 +1,7 @@
 import pygame
 from game import Game
 from menu import Menu
+from multiplayer_game import MultiplayerGame
 from settings import Settings
 
 def main():
@@ -34,6 +35,10 @@ def main():
                             current_screen = 'game'
                         else:
                             print("[Main] player_id non défini.")
+                    elif action == 'play_multiplayer':
+                        multiplayer_game = MultiplayerGame(menu.player_id)
+                        multiplayer_game.run()
+
             menu.draw(screen)
             pygame.display.flip()
             clock.tick(settings.fps)

@@ -49,13 +49,15 @@ class BaseSnake:
             pygame.draw.rect(screen, color, block_rect)
 
 class Snake(BaseSnake):
-    def __init__(self):
-        initial_body = [
-            pygame.Vector2(10, 10),
-            pygame.Vector2(9, 10),
-            pygame.Vector2(8, 10)
-        ]
-        initial_direction = pygame.Vector2(1, 0)
+    def __init__(self, initial_body=None, initial_direction=None):
+        if initial_body is None:
+            initial_body = [
+                pygame.Vector2(10, 10),
+                pygame.Vector2(9, 10),
+                pygame.Vector2(8, 10)
+            ]
+        if initial_direction is None:
+            initial_direction = pygame.Vector2(1, 0)
         super().__init__(initial_body, initial_direction)
 
     def change_direction(self, new_direction):
