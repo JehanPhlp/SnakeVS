@@ -26,6 +26,10 @@ class MultiplayerGame:
         self.enemy_id = None
         self.player_name = None
         self.enemy_name = None
+        self.game_over_flag = False
+        self.victory = False
+        self.winner_name = ''
+        self.countdown_start_time = None
 
     def init_network(self):
         @self.sio.event
@@ -55,17 +59,19 @@ class MultiplayerGame:
         @self.sio.event
         def waiting(data):
             print(data['message'])
-            # Afficher le message à l'écran si nécessaire
+            self.countdown_start_time = None  # S'assurer que le décompte n'a pas démarré
 
         @self.sio.event
         def game_start():
             print("La partie commence dans 5 secondes.")
             self.game_started = False
-            threading.Thread(target=self.start_countdown).start()
+            self.countdown_start_time = pygame.time.get_ticks()
+            self.countdown = 5
 
         @self.sio.event
         def start_game():
             self.game_started = True
+            self.countdown_start_time = None  # Réinitialiser le décompte
             self.player_name = Database().get_player_name(self.player_id)
             self.enemy_name = Database().get_player_name(self.enemy_id)
 
@@ -82,9 +88,15 @@ class MultiplayerGame:
 
         @self.sio.event
         def game_over(data):
-            winner = data['winner']
-            print(f"Jeu terminé. Gagnant : {winner}")
-            self.running = False
+            winner_id = data['winner_id']
+            if winner_id == self.player_id:
+                self.victory = True
+                self.winner_name = self.player_name
+            else:
+                self.victory = False
+                self.winner_name = self.enemy_name
+            self.game_over_flag = True
+            print(f"Jeu terminé. Gagnant : {self.winner_name}")
 
         @self.sio.event
         def update_lives(data):
@@ -95,31 +107,31 @@ class MultiplayerGame:
         # Connectez-vous au serveur Socket.IO
         self.sio.connect('http://89.234.183.219:3000')
 
-    def start_countdown(self):
-        while self.countdown > 0:
-            print(f"Début dans {self.countdown}...")
-            time.sleep(1)
-            self.countdown -= 1
-        self.sio.emit('start_game')
-
     def run(self):
         while self.running:
             self.handle_events()
-            if self.game_started:
+            if self.game_over_flag:
+                self.draw_game_over_screen()
+                self.clock.tick(10)
+            elif self.game_started:
                 self.update()
                 self.draw()
                 self.clock.tick(self.settings.fps)
             else:
+                self.update_countdown()
                 self.draw_waiting_screen()
-                self.clock.tick(1)
+                self.clock.tick(self.settings.fps)
 
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
                 self.sio.disconnect()
-            elif event.type == pygame.KEYDOWN and self.game_started and self.snake is not None:
-                self.handle_keydown(event)
+            elif event.type == pygame.KEYDOWN:
+                if self.game_over_flag:
+                    self.running = False  # Fermer le jeu ou retourner au menu principal
+                elif self.game_started and self.snake is not None:
+                    self.handle_keydown(event)
 
     def handle_keydown(self, event):
         if event.key == pygame.K_UP:
@@ -139,6 +151,14 @@ class MultiplayerGame:
         # Envoyer la position du serpent au serveur
         self.sio.emit('update_position', {'body': [[block.x, block.y] for block in self.snake.body]})
 
+    def update_countdown(self):
+        if self.countdown_start_time is not None:
+            elapsed_time = (pygame.time.get_ticks() - self.countdown_start_time) / 1000  # Convertir en secondes
+            self.countdown = max(0, 5 - elapsed_time)
+            if self.countdown <= 0:
+                self.countdown_start_time = None  # Arrêter le décompte
+                # Le jeu démarre lorsque le serveur envoie 'start_game'
+
     def draw(self):
         self.screen.fill(self.settings.bg_color)
         self.food.draw(self.screen)
@@ -150,15 +170,41 @@ class MultiplayerGame:
         pygame.display.flip()
 
     def draw_waiting_screen(self):
+        # Dessiner les éléments du jeu en arrière-plan
         self.screen.fill(self.settings.bg_color)
-        font = pygame.font.Font(None, 50)
-        if self.countdown > 0:
-            text = font.render(f"Début dans {self.countdown}", True, (255, 255, 255))
+        self.food.draw(self.screen)
+        if self.snake is not None:
+            self.snake.draw(self.screen, self.settings.snake_color)
+        if self.other_snake is not None and self.other_snake.body:
+            self.other_snake.draw(self.screen, self.settings.enemy_snake_color)
+
+        # Créer une surface d'overlay
+        overlay = pygame.Surface((self.settings.screen_width, self.settings.screen_height), pygame.SRCALPHA)
+        
+        if self.countdown_start_time is not None:
+            # Calculer l'opacité en fonction du décompte
+            opacity = int(255 * (self.countdown / 5))  # 5 est le temps total du décompte
+            opacity = max(0, min(255, opacity))
+            overlay.fill((0, 0, 0, opacity))
+            
+            # Afficher le décompte sur l'overlay
+            font = pygame.font.Font(None, 100)
+            text = font.render(f"{int(self.countdown) + 1}", True, (255, 255, 255))
+            rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
+            overlay.blit(text, rect)
         else:
+            # Remplir l'overlay complètement opaque
+            overlay.fill((0, 0, 0, 255))
+            # Afficher le message d'attente sur l'overlay
+            font = pygame.font.Font(None, 50)
             text = font.render("En attente d'un autre joueur...", True, (255, 255, 255))
-        rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
-        self.screen.blit(text, rect)
+            rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
+            overlay.blit(text, rect)
+        
+        # Appliquer l'overlay
+        self.screen.blit(overlay, (0, 0))
         pygame.display.flip()
+
 
     def draw_lives(self):
         font = pygame.font.Font(None, 36)
@@ -189,26 +235,19 @@ class MultiplayerGame:
                 self.sio.emit('lose_life')
                 collision_occurred = True
 
-        if collision_occurred:
-            if self.lives <= 0:
-                self.lives = 0
-                self.sio.emit('game_over')
-                self.running = False
-            else:
-                self.reset_snake()
-        
-        #colision avec soit meme
+        # Collision avec soi-même
         if self.snake.body[0] in self.snake.body[1:]:
             self.lives -= 1
             self.sio.emit('lose_life')
             collision_occurred = True
-            if collision_occurred:
-                if self.lives <= 0:
-                    self.lives = 0
-                    self.sio.emit('game_over')
-                    self.running = False
-                else:
-                    self.reset_snake()
+
+        if collision_occurred:
+            if self.lives <= 0:
+                self.lives = 0
+                self.sio.emit('game_over')
+                self.game_over_flag = True  # Utiliser game_over_flag au lieu de self.running = False
+            else:
+                self.reset_snake()
 
     def reset_snake(self):
         # Réinitialiser le serpent avec les positions initiales stockées
@@ -244,3 +283,22 @@ class MultiplayerGame:
         self.initial_direction = initial_direction
         self.snake = Snake(self.initial_body.copy(), self.initial_direction)
         print(f"Position initiale de votre serpent : {[ (block.x, block.y) for block in self.snake.body ]}")
+
+    def draw_game_over_screen(self):
+        self.screen.fill(self.settings.bg_color)
+        font = pygame.font.Font(None, 80)
+        if self.victory:
+            text = font.render("Victoire !", True, (0, 255, 0))
+        else:
+            text = font.render("Défaite", True, (255, 0, 0))
+        rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2 - 50))
+        self.screen.blit(text, rect)
+
+        font_small = pygame.font.Font(None, 50)
+        text2 = font_small.render(f"Adversaire : {self.enemy_name}", True, (255, 255, 255))
+        rect2 = text2.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2 + 10))
+        self.screen.blit(text2, rect2)
+
+        pygame.display.flip()
+        time.sleep(1)
+        

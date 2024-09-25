@@ -68,19 +68,22 @@ const io = require('socket.io')(3000, {
       }
     });
   
+    // Gérer la déconnexion en milieu de partie
     socket.on('disconnect', () => {
       console.log('Déconnexion :', socket.id);
       if (waitingPlayer && waitingPlayer.id === socket.id) {
-        waitingPlayer = null;
+          waitingPlayer = null;
       }
       // Gérer la déconnexion en milieu de partie
       const gameRoom = socket.gameRoom;
-      if (gameRoom) {
-        io.to(gameRoom).emit('game_over', { winner: 'L\'autre joueur a quitté la partie.' });
-        delete games[gameRoom];
+      if (gameRoom && games[gameRoom]) {
+          const otherPlayerId = getOtherPlayerId(socket, gameRoom);
+          const winnerPlayerId = getPlayerBySocketId(otherPlayerId).player_id;
+          io.to(gameRoom).emit('game_over', { winner_id: winnerPlayerId });
+          delete games[gameRoom];
       }
     });
-  
+      
     // Gestion des autres événements (update_position, eat_food, lose_life, etc.)
     socket.on('update_position', data => {
       const gameRoom = socket.gameRoom;
@@ -103,26 +106,26 @@ const io = require('socket.io')(3000, {
   
     // Gérer la perte de vie
     socket.on('lose_life', () => {
-        const gameRoom = socket.gameRoom;
-        if (gameRoom && games[gameRoom]) {
-            games[gameRoom].lives[socket.id] -= 1;
-            const otherPlayerId = getOtherPlayerId(socket, gameRoom);
-            // Envoyer la mise à jour des vies au joueur actuel
-            socket.emit('update_lives', {
-                your_lives: games[gameRoom].lives[socket.id],
-                other_lives: games[gameRoom].lives[otherPlayerId]
-            });
-            // Envoyer la mise à jour des vies à l'autre joueur
-            io.to(otherPlayerId).emit('update_lives', {
-                your_lives: games[gameRoom].lives[otherPlayerId],
-                other_lives: games[gameRoom].lives[socket.id]
-            });
-            // Vérifier si le joueur a perdu toutes ses vies
-            if (games[gameRoom].lives[socket.id] <= 0) {
-                io.to(gameRoom).emit('game_over', { winner: 'L\'autre joueur a gagné !' });
-                delete games[gameRoom];
-            }
-        }
+      const gameRoom = socket.gameRoom;
+      if (gameRoom && games[gameRoom]) {
+          games[gameRoom].lives[socket.id] -= 1;
+          const otherPlayerId = getOtherPlayerId(socket, gameRoom);
+          // Envoyer la mise à jour des vies
+          socket.emit('update_lives', {
+              your_lives: games[gameRoom].lives[socket.id],
+              other_lives: games[gameRoom].lives[otherPlayerId]
+          });
+          io.to(otherPlayerId).emit('update_lives', {
+              your_lives: games[gameRoom].lives[otherPlayerId],
+              other_lives: games[gameRoom].lives[socket.id]
+          });
+          // Vérifier si le joueur a perdu toutes ses vies
+          if (games[gameRoom].lives[socket.id] <= 0) {
+              const winnerPlayerId = getPlayerBySocketId(otherPlayerId).player_id;
+              io.to(gameRoom).emit('game_over', { winner_id: winnerPlayerId });
+              delete games[gameRoom];
+          }
+      }
     });
   
     // Gérer la fin de la partie
@@ -141,4 +144,15 @@ const io = require('socket.io')(3000, {
   
   function getOtherPlayerId(socket, gameRoom) {
     return games[gameRoom].players.find(player => player.id !== socket.id).id;
+  }
+
+  function getPlayerBySocketId(socketId) {
+    for (let gameRoom in games) {
+        const game = games[gameRoom];
+        const player = game.players.find(player => player.id === socketId);
+        if (player) {
+            return player;
+        }
+    }
+    return null;
   }
