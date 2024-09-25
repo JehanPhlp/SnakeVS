@@ -233,7 +233,7 @@ class Menu:
                 elif self.leaderboard_button_rect.collidepoint(event.pos):
                     self.show_leaderboard()
                 elif self.play_button_multiplayer_rect.collidepoint(event.pos):
-                    print("Multijoueur non implémenté.")
+                    return 'play_multiplayer'
         return None
 
     def create_or_get_player(self, pseudo):
