@@ -41,6 +41,8 @@ class MultiplayerGame:
             print(f"Rôle assigné : {self.role}")
             self.initialize_snakes()
 
+        
+
         @self.sio.event
         def waiting(data):
             print(data['message'])
