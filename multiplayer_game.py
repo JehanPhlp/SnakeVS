@@ -160,9 +160,9 @@ class MultiplayerGame:
 
     def draw_lives(self):
         font = pygame.font.Font(None, 36)
-        text = font.render(f"Vos vies : {self.lives}", True, (255, 255, 255))
+        text = font.render(f"{self.player_name} : {self.lives}", True, (255, 255, 255))
         self.screen.blit(text, (10, 10))
-        text = font.render(f"Vies adversaire : {self.other_lives}", True, (255, 255, 255))
+        text = font.render(f"{self.enemy_name} : {self.other_lives}", True, (255, 255, 255))
         self.screen.blit(text, (10, 50))
 
     def check_collisions(self):
