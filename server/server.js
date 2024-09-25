@@ -38,9 +38,10 @@ io.on("connection", (socket) => {
           [player2.id]: "player2",
         },
         snakes: {},
-        food: generateFoodPosition(),
         interval: null, // Pour stocker l'intervalle de la boucle de jeu
       };
+
+      // Définir le jeu dans la liste des jeux actifs
       games[gameRoom] = game;
 
       // Envoyer le rôle à chaque joueur
@@ -115,7 +116,9 @@ function startGame(gameRoom) {
       nextDirection: [-1, 0],
     },
   };
-  // Envoyer la position initiale de la nourriture
+  // Maintenant que les serpents sont initialisés, générer la nourriture
+  game.food = generateFoodPosition(game);
+  // Envoyer la position initiale de la nourriture aux joueurs
   io.to(gameRoom).emit("update_food", { position: game.food });
   // Démarrer la boucle de jeu
   game.interval = setInterval(() => {
@@ -161,7 +164,7 @@ function moveSnake(game, playerId) {
   // Vérifier si le serpent a mangé la nourriture
   if (newHead[0] === game.food[0] && newHead[1] === game.food[1]) {
     // Générer une nouvelle nourriture
-    game.food = generateFoodPosition(game);
+    game.food = generateFoodPosition(game); // Assurez-vous de passer 'game' ici
   } else {
     // Enlever la queue
     snake.body.pop();
