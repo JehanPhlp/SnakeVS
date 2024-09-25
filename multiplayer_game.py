@@ -235,26 +235,19 @@ class MultiplayerGame:
                 self.sio.emit('lose_life')
                 collision_occurred = True
 
-        if collision_occurred:
-            if self.lives <= 0:
-                self.lives = 0
-                self.sio.emit('game_over')
-                self.running = False
-            else:
-                self.reset_snake()
-        
-        #colision avec soit meme
+        # Collision avec soi-même
         if self.snake.body[0] in self.snake.body[1:]:
             self.lives -= 1
             self.sio.emit('lose_life')
             collision_occurred = True
-            if collision_occurred:
-                if self.lives <= 0:
-                    self.lives = 0
-                    self.sio.emit('game_over')
-                    self.running = False
-                else:
-                    self.reset_snake()
+
+        if collision_occurred:
+            if self.lives <= 0:
+                self.lives = 0
+                self.sio.emit('game_over')
+                self.game_over_flag = True  # Utiliser game_over_flag au lieu de self.running = False
+            else:
+                self.reset_snake()
 
     def reset_snake(self):
         # Réinitialiser le serpent avec les positions initiales stockées
@@ -307,3 +300,5 @@ class MultiplayerGame:
         self.screen.blit(text2, rect2)
 
         pygame.display.flip()
+        time.sleep(1)
+        
