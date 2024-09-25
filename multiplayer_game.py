@@ -45,6 +45,8 @@ class MultiplayerGame:
             print(f"Rôle assigné : {self.role}")
             self.initialize_snakes()
 
+        
+
         @self.sio.event
         def enemy_id(data):
             self.enemy_id = data['enemy_id']
