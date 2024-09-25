@@ -42,10 +42,11 @@ const io = require('socket.io')(3000, {
   
         // Envoyer le rôle à chaque joueur
         player1.emit('assign_role', { role: 'player1' });
-        player1.emit('enemy_id', { enemy_id: player2.id });
+        player1.emit('enemy_id', { enemy_id: player2.player_id });
+
         player2.emit('assign_role', { role: 'player2' });
-        player2.emit('enemy_id', { enemy_id: player1.id });
-        
+        player2.emit('enemy_id', { enemy_id: player1.player_id });
+
         console.log(`Rôle 'player1' assigné à ${player1.id}`);
         console.log(`Rôle 'player2' assigné à ${player2.id}`);
         
