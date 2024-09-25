@@ -65,7 +65,8 @@ class MultiplayerGame:
         def game_start():
             print("La partie commence dans 5 secondes.")
             self.game_started = False
-            threading.Thread(target=self.start_countdown).start()
+            self.countdown_start_time = pygame.time.get_ticks()
+            self.countdown = 5
 
         @self.sio.event
         def start_game():
@@ -105,13 +106,6 @@ class MultiplayerGame:
 
         # Connectez-vous au serveur Socket.IO
         self.sio.connect('http://89.234.183.219:3000')
-
-    def start_countdown(self):
-        while self.countdown > 0:
-            print(f"Début dans {self.countdown}...")
-            time.sleep(1)
-            self.countdown -= 1
-        self.sio.emit('start_game')
 
     def run(self):
         while self.running:
@@ -193,23 +187,24 @@ class MultiplayerGame:
             opacity = max(0, min(255, opacity))
             overlay.fill((0, 0, 0, opacity))
             
-            # Afficher le décompte
+            # Afficher le décompte sur l'overlay
             font = pygame.font.Font(None, 100)
             text = font.render(f"{int(self.countdown) + 1}", True, (255, 255, 255))
             rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
-            self.screen.blit(text, rect)
+            overlay.blit(text, rect)
         else:
             # Remplir l'overlay complètement opaque
             overlay.fill((0, 0, 0, 255))
-            # Afficher le message d'attente
+            # Afficher le message d'attente sur l'overlay
             font = pygame.font.Font(None, 50)
             text = font.render("En attente d'un autre joueur...", True, (255, 255, 255))
             rect = text.get_rect(center=(self.settings.screen_width // 2, self.settings.screen_height // 2))
-            self.screen.blit(text, rect)
+            overlay.blit(text, rect)
         
         # Appliquer l'overlay
         self.screen.blit(overlay, (0, 0))
         pygame.display.flip()
+
 
     def draw_lives(self):
         font = pygame.font.Font(None, 36)
