@@ -61,7 +61,7 @@ class MultiplayerGame:
             body = data['body']
             self.other_snake.body = [pygame.Vector2(pos[0], pos[1]) for pos in body]
             print(f"Position du serpent de l'autre joueur mise à jour : {[ (block.x, block.y) for block in self.other_snake.body ]}")
- 
+
         @self.sio.event
         def update_food(data):
             position = data['position']
@@ -119,7 +119,7 @@ class MultiplayerGame:
             self.snake.change_direction(pygame.Vector2(1, 0))
 
     def update(self):
-        if self.snake is None:
+        if self.snake is None or not self.sio.connected:
             return
         self.snake.move()
         self.check_collisions()
@@ -155,6 +155,8 @@ class MultiplayerGame:
         self.screen.blit(text, (10, 50))
 
     def check_collisions(self):
+        collision_occurred = False
+
         # Collision avec la nourriture
         if self.snake.body[0] == self.food.position:
             self.snake.grow()
@@ -165,30 +167,26 @@ class MultiplayerGame:
         if self.snake.check_bounds():
             self.lives -= 1
             self.sio.emit('lose_life')
-            if self.lives == 0:
-                self.sio.emit('game_over')
-            else:
-                self.reset_snake()
+            collision_occurred = True
 
         # Collision avec le corps de l'autre serpent
         if self.other_snake is not None and self.other_snake.body:
             if self.snake.body[0] in self.other_snake.body:
                 self.lives -= 1
                 self.sio.emit('lose_life')
-                if self.lives == 0:
-                    self.sio.emit('game_over')
-                else:
-                    self.reset_snake()
+                collision_occurred = True
 
-        if self.lives <= 0:
-            self.lives = 0
-            self.sio.emit('game_over')
-            self.running = False
-        else:
-            self.reset_snake()
+        if collision_occurred:
+            if self.lives <= 0:
+                self.lives = 0
+                self.sio.emit('game_over')
+                self.running = False
+            else:
+                self.reset_snake()
 
     def reset_snake(self):
-        self.snake = Snake()
+        # Réinitialiser le serpent avec les positions initiales stockées
+        self.snake = Snake(self.initial_body.copy(), self.initial_direction)
 
     def initialize_snakes(self):
         print(f"Initialisation des serpents pour le rôle : {self.role}")
@@ -216,5 +214,7 @@ class MultiplayerGame:
                 pygame.Vector2(8, 10)
             ]
             initial_direction = pygame.Vector2(1, 0)
-        self.snake = Snake(initial_body, initial_direction)
+        self.initial_body = initial_body.copy()
+        self.initial_direction = initial_direction
+        self.snake = Snake(self.initial_body.copy(), self.initial_direction)
         print(f"Position initiale de votre serpent : {[ (block.x, block.y) for block in self.snake.body ]}")
