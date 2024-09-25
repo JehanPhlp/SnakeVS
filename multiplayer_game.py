@@ -29,6 +29,7 @@ class MultiplayerGame:
         self.game_over_flag = False
         self.victory = False
         self.winner_name = ''
+        self.countdown_start_time = None
 
     def init_network(self):
         @self.sio.event
