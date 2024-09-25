@@ -63,6 +63,17 @@ class Database:
                 else:
                     print(err.msg)
 
+    def get_player_name(self, player_id):
+        self.cursor.execute(
+            "SELECT pseudo FROM players WHERE player_id = %s",
+            (player_id,)
+        )
+        result = self.cursor.fetchone()
+        if result:
+            return result['pseudo']
+        else:
+            return None
+
     def insert_player(self, pseudo):
         try:
             self.cursor.execute(

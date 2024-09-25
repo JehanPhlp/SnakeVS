@@ -5,6 +5,7 @@ from food import Food
 import socketio
 import threading
 import time
+from database import Database
 
 class MultiplayerGame:
     def __init__(self, player_id):
@@ -22,6 +23,9 @@ class MultiplayerGame:
         self.lives = 3
         self.other_lives = 3
         self.countdown = 5
+        self.enemy_id = None
+        self.player_name = None
+        self.enemy_name = None
 
     def init_network(self):
         @self.sio.event
@@ -42,6 +46,11 @@ class MultiplayerGame:
             self.initialize_snakes()
 
         @self.sio.event
+        def enemy_id(data):
+            self.enemy_id = data['enemy_id']
+            print(f"ID de l'adversaire : {self.enemy_id}")
+
+        @self.sio.event
         def waiting(data):
             print(data['message'])
             # Afficher le message à l'écran si nécessaire
@@ -55,6 +64,8 @@ class MultiplayerGame:
         @self.sio.event
         def start_game():
             self.game_started = True
+            self.player_name = Database().get_player_name(self.player_id)
+            self.enemy_name = Database().get_player_name(self.enemy_id)
 
         @self.sio.event
         def update_other_snake(data):
@@ -77,7 +88,7 @@ class MultiplayerGame:
         def update_lives(data):
             self.lives = data['your_lives']
             self.other_lives = data['other_lives']
-            print(f"Vos vies : {self.lives}, Vies adversaire : {self.other_lives}")
+            print(f"{self.player_name} : {self.lives}, {self.enemy_name} : {self.other_lives}")
 
         # Connectez-vous au serveur Socket.IO
         self.sio.connect('http://89.234.183.219:3000')
