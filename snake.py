@@ -9,6 +9,7 @@ class BaseSnake:
         self.new_block = False
 
     def move(self):
+        # La direction est mise à jour dans la classe Snake
         if self.new_block:
             new_body = self.body[:]
             new_body.insert(0, new_body[0] + self.direction)
@@ -59,7 +60,12 @@ class Snake(BaseSnake):
         if initial_direction is None:
             initial_direction = pygame.Vector2(1, 0)
         super().__init__(initial_body, initial_direction)
+        self.next_direction = self.direction.copy()  # Nouvelle variable pour la prochaine direction
 
     def change_direction(self, new_direction):
         if new_direction + self.direction != pygame.Vector2(0, 0):
-            self.direction = new_direction
+            self.next_direction = new_direction
+
+    def move(self):
+        self.direction = self.next_direction.copy()  # Mettre à jour la direction avec la prochaine direction
+        super().move()
